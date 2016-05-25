@@ -94,17 +94,16 @@ glm::mat4 cameraProjection;
 //Camera Rotation
 GLfloat cameraRadius;
 GLfloat cameraX;
+GLfloat cameraY;
 GLfloat cameraZ;
+GLfloat fltCameraHRotation;
+GLfloat fltCameraVRotation;
 
 //Camera Zoom
 GLfloat fltCameraCurrentZoomLevel;
 GLfloat zNear;
 GLfloat zFar;
 
-int intCameraZoom;
-int intCameraRotation;
-int intCameraPositionXOffset;
-int intCameraPositionZOffset;
 
 //Track if zooming or rotating camera
 bool bolRotateCam;
@@ -121,10 +120,10 @@ int intShrinkMagnitude = 0;
 bool keys[1024];
 bool mouseButton[2]; //0 = left, 1=right
 
-/*Objects
-* Corodinates; (x,y,z,-,-,-) - (L/R,U/D,F/B)
-* Color: (-,-,-,R,G,B) - Alpha handled at the shader level across the entire object
-*/
+					 /*Objects
+					 * Corodinates; (x,y,z,-,-,-) - (L/R,U/D,F/B)
+					 * Color: (-,-,-,R,G,B) - Alpha handled at the shader level across the entire object
+					 */
 
 const int vertexSize = 6;
 
@@ -174,16 +173,7 @@ GLfloat vertices[] = {
 
 
 glm::vec3 objectPositions[] = {
-	glm::vec3(0.0f, 0.0f, 0.0f),
-	glm::vec3(2.0f, 5.0f, -15.0f),
-	glm::vec3(-1.5f, -2.2f, -2.5f),
-	glm::vec3(-3.8f, -2.0f, -12.3f),
-	glm::vec3(2.4f, -0.4f, -3.5f),
-	glm::vec3(-1.7f, 3.0f, -7.5f),
-	glm::vec3(1.3f, -2.0f, -2.5f),
-	glm::vec3(1.5f, 2.0f, -2.5f),
-	glm::vec3(1.5f, 0.2f, -1.5f),
-	glm::vec3(-1.3f, 1.0f, -1.5f)
+	glm::vec3(0.0f, 0.0f, 0.0f)
 };
 
 
@@ -215,14 +205,14 @@ void init() {
 	);
 
 	//Camera zoom
-	fltCameraCurrentZoomLevel = 45.0f;
+	fltCameraCurrentZoomLevel = 44.1f;
 	zNear = 1.0;
 	zFar = zNear + 3.0;
 
-	//Camera Controls
+	//Camera Rotation
 	cameraRadius = 10.0f; //Not setting cameraX and cameraY here, because they will be set on rendering
-	intCameraZoom = 10;
-	intCameraRotation = 10;
+	fltCameraHRotation = 10;
+	fltCameraVRotation = 0;
 
 	bolRotateCam = true;
 }
@@ -231,9 +221,10 @@ void init() {
 * Change the amount of rotation of the camera
 */
 void updateCameraPositionRotate() {
-	cameraX = sin(intCameraRotation) * cameraRadius;
-	cameraZ = cos(intCameraRotation) * cameraRadius;
-	bolRotateCam = false;
+
+	cameraX = sin(fltCameraHRotation) * cameraRadius;
+	cameraY = 5.0f;
+	cameraZ = cos(fltCameraHRotation) * cameraRadius;
 }
 
 
@@ -294,9 +285,14 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 }
 
 /**
-*
+* React to input events
 */
 void eventTriggers() {
+
+	/*
+	 * Rendering Mode
+	 */
+
 	//Change rendering to Points on P
 	if (keys[GLFW_KEY_P]) {
 		intRenderMode = GL_POINTS;
@@ -317,7 +313,11 @@ void eventTriggers() {
 		std::cout << "Render Mode: Triangles" << std::endl;
 	}
 
-	if(keys[GLFW_KEY_Q]) {
+	/*
+	 * Camera Zoom
+	 */
+
+	if (keys[GLFW_KEY_Q]) {
 		if (fltCameraCurrentZoomLevel <= 46.0f) {
 			fltCameraCurrentZoomLevel += 0.1f;
 		}
@@ -326,14 +326,37 @@ void eventTriggers() {
 	}
 
 	if (keys[GLFW_KEY_E]) {
-		if (fltCameraCurrentZoomLevel > 44.4f) {
+		if (fltCameraCurrentZoomLevel > 44.1f) {
 			fltCameraCurrentZoomLevel -= 0.1f;
 		}
 
 		std::cout << "Zoom: In at " << std::fixed << std::setprecision(3) << fltCameraCurrentZoomLevel << std::endl;
 	}
 
+	/*
+	 * Camera Rotate
+	 */
+	if (keys[GLFW_KEY_UP]) { //TO-DO
 
+		std::cout << "Camera Rotate Up" << std::endl;
+	}
+
+	if (keys[GLFW_KEY_DOWN]) { //TO-DO
+
+		std::cout << "Camera Rotate Down" << std::endl;
+	}
+
+	if (keys[GLFW_KEY_LEFT]) {
+		fltCameraHRotation += 0.05f;
+
+		std::cout << "Camera Rotate Left" << std::endl;
+	}
+
+	if (keys[GLFW_KEY_RIGHT]) {
+		fltCameraHRotation -= 0.05f;
+
+		std::cout << "Camera Rotate Right" << std::endl;
+	}
 }
 
 
@@ -519,7 +542,7 @@ void initializeVBO(GLuint VBO, GLfloat vertices[], int intArraySize) {
 	std::cout << vertices << std::endl;
 
 	//first parameter is the number of VBO names to generate
-	glGenBuffers(1, &VBO);		
+	glGenBuffers(1, &VBO);
 
 	//Bind the vertex buffer
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -591,7 +614,7 @@ int main()
 	//Generate vertex array & buffer objects
 	glGenVertexArrays(1, &VAO);	//first parameter is the number of VAO names to generate
 
-										// Bind the Vertex Array Object
+								// Bind the Vertex Array Object
 	glBindVertexArray(VAO);
 
 
@@ -646,21 +669,19 @@ int main()
 			glm::value_ptr(objectTransformation)
 		);
 
-		if (bolRotateCam) {
-			updateCameraPositionRotate();
-		}
+		updateCameraPositionRotate();
 
-		/*
+		
 		//set the camera view
 		cameraView = glm::lookAt(
-			glm::vec3(
-				cameraX,
-				0.0f,
-				cameraZ
-			), //camera position
-			cameraTarget,
-			orientationUp
-		);*/
+		glm::vec3(
+		cameraX,
+		cameraY,
+		cameraZ
+		), //camera position
+		cameraTarget,
+		orientationUp
+		);
 
 		// Set the camera projection 
 		cameraProjection = glm::perspective(
